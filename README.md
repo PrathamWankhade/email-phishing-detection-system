@@ -1,0 +1,221 @@
+# 🛡️ AI-Based Phishing Email Detection System
+
+> An AI-powered phishing email detection platform using **Machine Learning, NLP, FastAPI, and React** for real-time phishing analysis and explainable threat detection.
+
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat-square\&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square\&logo=fastapi)
+![React](https://img.shields.io/badge/React-Frontend-61DAFB?style=flat-square\&logo=react)
+![ML](https://img.shields.io/badge/Machine%20Learning-TF--IDF%20%2B%20Logistic%20Regression-orange?style=flat-square)
+
+---
+
+## ✨ Overview
+
+Phishing emails are one of the biggest cybersecurity threats, often leading to credential theft, financial fraud, and data breaches.
+
+This project uses **Natural Language Processing (NLP)** and **Machine Learning** to analyze email content, sender patterns, urgency signals, and suspicious URLs to classify emails as:
+
+* ✅ Safe
+* ⚠️ Suspicious
+* 🚨 Phishing
+
+The system is built with a **production-style modular architecture**, combining a React frontend, FastAPI backend, and ML-powered detection pipeline.
+
+---
+
+## 🚀 Features
+
+### Real-Time Email Detection
+
+* Scan emails instantly
+* Risk classification
+* Confidence score prediction
+
+### AI + NLP Analysis
+
+* Text preprocessing
+* Tokenization & stemming
+* TF-IDF vectorization
+* ML-based classification
+
+### URL & Sender Intelligence
+
+* Suspicious domain detection
+* Sender risk analysis
+* Urgency keyword detection
+
+### Analytics Dashboard
+
+* Threat distribution charts
+* Scan history
+* Risk-level analytics
+
+---
+
+## 🛠️ Tech Stack
+
+| Category      | Technologies                              |
+| ------------- | ----------------------------------------- |
+| Frontend      | React, Vite, Tailwind CSS                 |
+| Backend       | FastAPI, Python                           |
+| Database      | SQLite                                    |
+| AI/ML         | Scikit-learn, TF-IDF, Logistic Regression |
+| Visualization | Recharts                                  |
+
+---
+
+## 📂 Project Structure
+
+```text
+email-phishing-detection-system/
+│── frontend/
+│── backend/
+│── ai-engine/
+│── datasets/
+│── trained_models/
+│── tests/
+│── documentation/
+│── README.md
+```
+
+---
+
+## 📥 Dataset Setup
+
+Raw datasets are not included due to GitHub size limits.
+
+### 1. Phishing Dataset
+
+Download:
+
+https://www.kaggle.com/datasets/naserabdullahalam/phishing-email-dataset
+
+Place files inside:
+
+```text
+datasets/raw/
+├── phishing_email/
+├── Nazario/
+├── Nigerian_Fraud/
+├── SpamAssasin/
+└── CEAS_08/
+```
+
+### 2. Legitimate Email Dataset
+
+Download Enron Dataset:
+
+https://www.cs.cmu.edu/~enron/
+
+Extract into:
+
+```text
+datasets/raw/enron_mail/
+```
+
+---
+
+## ⚙️ Setup
+
+### Clone Repository
+
+```bash
+git clone https://github.com/PrathamWankhade/email-phishing-detection-system.git
+cd email-phishing-detection-system
+```
+
+### Backend Setup
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn backend.app.main:app --reload
+```
+
+Backend:
+
+```text
+http://127.0.0.1:8000
+```
+
+API Docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### Frontend Setup
+
+```bash
+npm install
+npm run dev
+```
+
+Frontend:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## 🧠 Detection Pipeline
+
+```text
+Email Input
+    ↓
+NLP Processing
+    ↓
+URL & Sender Analysis
+    ↓
+TF-IDF Vectorization
+    ↓
+Machine Learning Model
+    ↓
+Risk Classification
+```
+
+---
+
+## 📈 Model Performance
+
+| Metric       | Value                        |
+| ------------ | ---------------------------- |
+| Model        | Logistic Regression + TF-IDF |
+| Dataset Size | 231,893+ Emails              |
+| Accuracy     | 99.58%                       |
+
+---
+
+## 🖼️ Screenshots
+
+### Homepage
+
+*Add screenshot here*
+
+### Dashboard
+
+*Add screenshot here*
+
+### Scan Result
+
+*Add screenshot here*
+
+---
+
+## 🔮 Future Improvements
+
+* Browser extension integration
+* Real-time threat intelligence
+* Deep learning models
+* URL sandbox analysis
+* Cloud deployment
+
+---
+
+## 👨‍💻 Author
+
+**Pratham Wankhade**
+
+Built as a production-style cybersecurity & AI project focused on phishing detection, explainable ML, and modular software engineering.

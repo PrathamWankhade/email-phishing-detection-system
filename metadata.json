@@ -1,0 +1,5 @@
+{
+  "name": "AI Phishing Email Detection System",
+  "description": "A modular cybersecurity project that detects phishing emails using NLP features, URL analysis, sender analysis, and ML-style scoring.",
+  "requestFramePermissions": []
+}
