@@ -38,7 +38,29 @@ git rm --cached -r datasets/validation
 
 git rm --cached datasets/final/final_emails.csv
 
-.env
+.# Datasets
+datasets/
+
+# Models
+trained_models/*.pkl
+ai-engine/models/*.pkl
+
+# Database
 phishing_detection.db
+
+# Environment
+.env
+
+# Python
+.venv/
 __pycache__/
 *.pyc
+
+# Frontend
+node_modules/
+dist/
+
+# Reports
+reports/*.pdf
+reports/*.png
+reports/*.csv
