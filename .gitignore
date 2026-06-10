@@ -37,3 +37,8 @@ git rm --cached -r datasets/processed
 git rm --cached -r datasets/validation
 
 git rm --cached datasets/final/final_emails.csv
+
+.env
+phishing_detection.db
+__pycache__/
+*.pyc

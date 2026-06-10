@@ -1,16 +1,26 @@
 from fastapi import APIRouter
 import sqlite3
+from pathlib import Path
 
 router = APIRouter()
 
-DB_NAME = "phishing_detection.db"
+BASE_DIR = (
+    Path(__file__)
+    .resolve()
+    .parents[4]
+)
 
+DB_PATH = (
+    BASE_DIR
+    / "phishing_detection.db"
+)
 
 @router.get("/history")
 def get_history():
+
     conn = sqlite3.connect(
-            DB_NAME
-        )
+        DB_PATH
+    )
 
     cursor = conn.cursor()
 
@@ -22,7 +32,8 @@ def get_history():
             risk_level,
             created_at
         FROM scan_history
-        ORDER BY created_at DESC
+        ORDER BY
+            created_at DESC
     """)
 
     rows = cursor.fetchall()
@@ -33,12 +44,16 @@ def get_history():
         {
             "sender":
                 row[0],
+
             "prediction":
                 row[1],
+
             "confidence":
                 row[2],
+
             "risk_level":
                 row[3],
+
             "created_at":
                 row[4],
         }

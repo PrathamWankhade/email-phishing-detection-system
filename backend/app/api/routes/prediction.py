@@ -1,17 +1,26 @@
 from pathlib import Path
+import sqlite3
+import hashlib
 import joblib
-import re
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from backend.app.services.gemini_explainer import (
+    generate_ai_explanation
+)
+
 router = APIRouter()
 
 # ==========================================
-# LOAD MODEL
+# PATHS
 # ==========================================
 
-BASE_DIR = Path(__file__).resolve().parents[4]
+BASE_DIR = (
+    Path(__file__)
+    .resolve()
+    .parents[4]
+)
 
 MODEL_PATH = (
     BASE_DIR
@@ -26,6 +35,15 @@ VECTORIZER_PATH = (
     / "models"
     / "vectorizer.pkl"
 )
+
+DB_PATH = (
+    BASE_DIR
+    / "phishing_detection.db"
+)
+
+# ==========================================
+# LOAD MODEL
+# ==========================================
 
 model = joblib.load(
     MODEL_PATH
@@ -48,67 +66,44 @@ class PredictionRequest(
     sender: str = ""
 
 # ==========================================
-# HELPER
+# DATABASE INIT
 # ==========================================
 
-suspicious_terms = [
-    "urgent",
-    "verify",
-    "password",
-    "otp",
-    "bank",
-    "suspended",
-    "click",
-    "login",
-    "payment",
-    "limited",
-]
+def initialize_database():
 
-def analyze_reasons(
-    email_text,
-    sender,
-):
-    reasons = []
-
-    lower = email_text.lower()
-
-    matched = [
-        term
-        for term in suspicious_terms
-        if term in lower
-    ]
-
-    for term in matched[:5]:
-        reasons.append(
-            f"Suspicious keyword detected: {term}"
-        )
-
-    url_count = len(
-        re.findall(
-            r"https?://|www\.",
-            email_text,
-        )
+    conn = sqlite3.connect(
+        DB_PATH
     )
 
-    if url_count:
-        reasons.append(
-            f"{url_count} suspicious link(s) found"
-        )
+    cursor = conn.cursor()
 
-    if re.search(
-        r"\.(xyz|top|click|zip|ru)\b",
-        sender.lower(),
-    ):
-        reasons.append(
-            "Suspicious sender domain detected"
-        )
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS
+        scan_history (
+            id INTEGER
+            PRIMARY KEY AUTOINCREMENT,
 
-    if not reasons:
-        reasons.append(
-            "No strong phishing indicators found"
-        )
+            email_hash TEXT
+            UNIQUE,
 
-    return reasons
+            sender TEXT,
+
+            prediction TEXT,
+
+            confidence REAL,
+
+            risk_level TEXT,
+
+            created_at TIMESTAMP
+            DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+initialize_database()
 
 # ==========================================
 # PREDICT ROUTE
@@ -119,11 +114,19 @@ def predict_email(
     request: PredictionRequest
 ):
 
+    # ======================
+    # COMBINE TEXT
+    # ======================
+
     text = (
         request.email_text
         + " "
         + request.sender
     )
+
+    # ======================
+    # VECTORIZE
+    # ======================
 
     vectorized = (
         vectorizer.transform(
@@ -131,9 +134,15 @@ def predict_email(
         )
     )
 
-    prediction = model.predict(
-        vectorized
-    )[0]
+    # ======================
+    # MODEL PREDICTION
+    # ======================
+
+    prediction = (
+        model.predict(
+            vectorized
+        )[0]
+    )
 
     probabilities = (
         model.predict_proba(
@@ -142,9 +151,21 @@ def predict_email(
     )
 
     confidence = round(
-        max(probabilities) * 100,
+        max(probabilities)
+        * 100,
         2,
     )
+
+    label = (
+        "Phishing Email"
+        if prediction
+        == "phishing"
+        else "Safe Email"
+    )
+
+    # ======================
+    # RISK LEVEL
+    # ======================
 
     risk_level = (
         "high"
@@ -154,12 +175,33 @@ def predict_email(
         else "low"
     )
 
-    return {
+    # ======================
+    # GEMINI EXPLANATION
+    # ======================
+
+    reasons = (
+        generate_ai_explanation(
+            request.email_text,
+            request.sender,
+            label,
+            confidence
+        )
+    )
+
+    # fallback if Gemini fails
+    if not reasons:
+
+        reasons = [
+            "AI explanation unavailable."
+        ]
+
+    # ======================
+    # RESPONSE RESULT
+    # ======================
+
+    result = {
         "label":
-            "Phishing Email"
-            if prediction
-            == "phishing"
-            else "Safe Email",
+            label,
 
         "confidence":
             confidence,
@@ -168,8 +210,97 @@ def predict_email(
             risk_level,
 
         "reasons":
-            analyze_reasons(
-                request.email_text,
-                request.sender,
-            ),
+            reasons,
     }
+
+    # ======================
+    # CREATE HASH
+    # ======================
+
+    email_hash = hashlib.md5(
+        (
+            request.email_text
+            .strip()
+            .lower()
+            +
+            request.sender
+            .strip()
+            .lower()
+        ).encode()
+    ).hexdigest()
+
+    conn = sqlite3.connect(
+        DB_PATH
+    )
+
+    cursor = conn.cursor()
+
+    # ======================
+    # CHECK EXISTING ENTRY
+    # ======================
+
+    cursor.execute("""
+        SELECT id
+        FROM scan_history
+        WHERE email_hash = ?
+    """, (
+        email_hash,
+    ))
+
+    existing = (
+        cursor.fetchone()
+    )
+
+    # ======================
+    # UPDATE EXISTING SCAN
+    # ======================
+
+    if existing:
+
+        cursor.execute("""
+            UPDATE scan_history
+            SET
+                sender = ?,
+                prediction = ?,
+                confidence = ?,
+                risk_level = ?,
+                created_at =
+                    CURRENT_TIMESTAMP
+            WHERE
+                email_hash = ?
+        """, (
+            request.sender,
+            label,
+            confidence,
+            risk_level,
+            email_hash,
+        ))
+
+    # ======================
+    # INSERT NEW SCAN
+    # ======================
+
+    else:
+
+        cursor.execute("""
+            INSERT INTO
+            scan_history (
+                email_hash,
+                sender,
+                prediction,
+                confidence,
+                risk_level
+            )
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            email_hash,
+            request.sender,
+            label,
+            confidence,
+            risk_level,
+        ))
+
+    conn.commit()
+    conn.close()
+
+    return result

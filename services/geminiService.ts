@@ -8,7 +8,7 @@ const getClient = (): GoogleGenAI => {
   if (!aiClient) {
     // In a real production app, ensure API_KEY is secure.
     // For this frontend demo, we assume it's available in env.
-    const apiKey = process.env.API_KEY || ''; 
+    const apiKey = process.env.GEMINI_API_KEY || ''; 
     aiClient = new GoogleGenAI({ apiKey });
   }
   return aiClient;

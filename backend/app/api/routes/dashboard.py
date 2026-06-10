@@ -8,29 +8,43 @@ router = APIRouter()
 
 @router.get("/dashboard")
 def dashboard():
-    history = get_scan_history()
 
-    total_scans = len(history)
+    history = (
+        get_scan_history()
+    )
+
+    total_scans = len(
+        history
+    )
+
+    # ======================
+    # FIXED LABELS
+    # ======================
 
     phishing_count = len([
         item
         for item in history
         if item["prediction"]
-        == "phishing"
+        == "Phishing Email"
     ])
 
     safe_count = len([
         item
         for item in history
         if item["prediction"]
-        == "legitimate"
+        == "Safe Email"
     ])
+
+    # ======================
+    # AVG CONFIDENCE
+    # ======================
 
     avg_confidence = (
         round(
             sum(
                 item["confidence"]
-                for item in history
+                for item
+                in history
             )
             / total_scans,
             1,
@@ -39,6 +53,10 @@ def dashboard():
         else 0
     )
 
+    # ======================
+    # RISK LEVELS
+    # ======================
+
     risk_levels = {
         "high": 0,
         "medium": 0,
@@ -46,19 +64,30 @@ def dashboard():
     }
 
     for item in history:
-        risk_levels[
-            item["risk_level"]
-        ] += 1
+
+        risk = item.get(
+            "risk_level",
+            "low"
+        )
+
+        if risk in risk_levels:
+            risk_levels[
+                risk
+            ] += 1
 
     return {
         "total_scans":
             total_scans,
+
         "phishing_count":
             phishing_count,
+
         "safe_count":
             safe_count,
+
         "avg_confidence":
             avg_confidence,
+
         "risk_levels":
             risk_levels,
     }
