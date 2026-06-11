@@ -190,19 +190,11 @@ Risk Classification
 
 ## 🖼️ Screenshots
 
-### Homepage
+<img width="1915" height="872" alt="Screenshot 2026-06-11 193217" src="https://github.com/user-attachments/assets/ba9f4faa-f7bc-4716-891c-ff83f4e5773f" />
+<img width="609" height="739" alt="Screenshot 2026-06-11 193226" src="https://github.com/user-attachments/assets/4806cf9c-5b8b-4bab-a00a-b9b5880e9fd1" />
+<img width="1097" height="806" alt="Screenshot 2026-06-11 193256" src="https://github.com/user-attachments/assets/79839131-20ee-4888-b640-96bfc1209fa6" />
+<img width="886" height="809" alt="Screenshot 2026-06-11 193323" src="https://github.com/user-attachments/assets/d1e6f34f-ecb0-42fc-b728-31a90ee90537" />
 
-*Add screenshot here*
-
-### Dashboard
-
-*Add screenshot here*
-
-### Scan Result
-
-*Add screenshot here*
-
----
 
 ## 🔮 Future Improvements
 
