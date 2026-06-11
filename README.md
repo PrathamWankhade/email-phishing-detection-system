@@ -193,8 +193,8 @@ Risk Classification
 <img width="1319" height="859" alt="Screenshot 2026-06-11 193659" src="https://github.com/user-attachments/assets/d6175064-f4db-48ef-9177-accea308f566" />
 <img width="1330" height="858" alt="Screenshot 2026-06-11 193810" src="https://github.com/user-attachments/assets/f043d7e2-b231-4abe-b0b6-359bc1863773" />
 <img width="1268" height="842" alt="Screenshot 2026-06-11 193913" src="https://github.com/user-attachments/assets/2cce7c8d-dbaa-4ac1-ba3b-2071b28047e7" />
-<img width="886" height="809" alt="Screenshot 2026-06-11 193323" src="https://github.com/user-attachments/assets/d1e6f34f-ecb0-42fc-b728-31a90ee90537" />
-
+<img width="1768" height="652" alt="Screenshot 2026-06-11 194102" src="https://github.com/user-attachments/assets/a34254e1-ab4e-4b8c-9479-00967badf144" />
+<img width="1429" height="859" alt="Screenshot 2026-06-11 194143" src="https://github.com/user-attachments/assets/9261f24e-4caa-408e-8610-cbe0d84fcfad" />
 
 ## 🔮 Future Improvements
 
