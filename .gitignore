@@ -3,62 +3,40 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
+# Dependencies
+node_modules/
 .venv/
 
 # Build output
 dist/
+dist-ssr
+*.local
 
-git rm --cached phishing_detection.db
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.sw?
 
-git rm --cached -r datasets/processed
-git rm --cached -r datasets/validation
-
-git rm --cached datasets/final/final_emails.csv
-
-.# Datasets
-datasets/
-
-# Models
-trained_models/*.pkl
-ai-engine/models/*.pkl
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
 
 # Database
 phishing_detection.db
 
+# Datasets
+datasets/
+
+# Models
+trained_models/*.pkl
+
 # Environment
 .env
-
-# Python
-.venv/
-__pycache__/
-*.pyc
-
-# Frontend
-node_modules/
-dist/
 
 # Reports
 reports/*.pdf

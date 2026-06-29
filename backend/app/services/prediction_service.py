@@ -5,14 +5,10 @@ from backend.app.database.models import (
     save_scan,
 )
 
-# Model paths
-MODEL_PATH = Path(
-    "trained_models/phishing_model.pkl"
-)
+BASE_DIR = Path(__file__).resolve().parents[3]
 
-VECTORIZER_PATH = Path(
-    "trained_models/tfidf_vectorizer.pkl"
-)
+MODEL_PATH = BASE_DIR / "trained_models" / "phishing_model.pkl"
+VECTORIZER_PATH = BASE_DIR / "trained_models" / "tfidf_vectorizer.pkl"
 
 # Load trained model
 model = joblib.load(MODEL_PATH)

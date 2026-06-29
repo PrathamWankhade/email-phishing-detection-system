@@ -1,61 +1,19 @@
 from fastapi import APIRouter
-import sqlite3
-from pathlib import Path
+from backend.app.database.models import get_scan_history
 
 router = APIRouter()
 
-BASE_DIR = (
-    Path(__file__)
-    .resolve()
-    .parents[4]
-)
-
-DB_PATH = (
-    BASE_DIR
-    / "phishing_detection.db"
-)
 
 @router.get("/history")
 def get_history():
-
-    conn = sqlite3.connect(
-        DB_PATH
-    )
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT
-            sender,
-            prediction,
-            confidence,
-            risk_level,
-            created_at
-        FROM scan_history
-        ORDER BY
-            created_at DESC
-    """)
-
-    rows = cursor.fetchall()
-
-    conn.close()
-
+    results = get_scan_history()
     return [
         {
-            "sender":
-                row[0],
-
-            "prediction":
-                row[1],
-
-            "confidence":
-                row[2],
-
-            "risk_level":
-                row[3],
-
-            "created_at":
-                row[4],
+            "sender": row.get("sender", ""),
+            "prediction": row.get("prediction", ""),
+            "confidence": row.get("confidence", 0),
+            "risk_level": row.get("risk_level", "low"),
+            "created_at": row.get("created_at", ""),
         }
-        for row in rows
+        for row in results
     ]

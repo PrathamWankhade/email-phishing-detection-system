@@ -1,15 +1,15 @@
 import React from 'react';
 
 export default function RiskMeter({ score = 0 }) {
-  const color = score >= 70 ? 'bg-red-400' : score >= 40 ? 'bg-amber-300' : 'bg-emerald-300';
+  const color = score >= 70 ? 'bg-danger-500' : score >= 40 ? 'bg-suspicious-500' : 'bg-safe-500';
   return (
     <div>
-      <div className="mb-2 flex justify-between text-sm text-slate-300">
+      <div className="mb-1.5 flex justify-between text-xs text-text-secondary">
         <span>Risk Meter</span>
         <span>{score}%</span>
       </div>
-      <div className="h-4 overflow-hidden rounded-full bg-slate-800">
-        <div className={`h-full ${color} transition-all duration-700`} style={{ width: `${Math.min(100, score)}%` }} />
+      <div className="h-2 overflow-hidden rounded-full bg-surface-200">
+        <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${Math.min(100, score)}%` }} />
       </div>
     </div>
   );
