@@ -1,297 +1,218 @@
+import csv, os, re, sys, random, email
 from pathlib import Path
-import pandas as pd
+from html import unescape
+from collections import defaultdict
 
-print("SCRIPT STARTED")
+csv.field_size_limit(2**31 - 1)
 
-# ==========================================
-# PATHS
-# ==========================================
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RAW_DIR = PROJECT_ROOT / "datasets" / "raw"
+FINAL_DIR = PROJECT_ROOT / "datasets" / "final"
+FINAL_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT = FINAL_DIR / "final_emails.csv"
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-
-RAW_DIR = BASE_DIR / "datasets" / "raw"
-PROCESSED_DIR = BASE_DIR / "datasets" / "processed"
-FINAL_DIR = BASE_DIR / "datasets" / "final"
-
-FINAL_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-# ==========================================
-# LOAD ENRON
-# ==========================================
-
-print("Loading Enron...")
-
-enron = pd.read_csv(
-    PROCESSED_DIR /
-    "enron_legitimate.csv"
-)
-
-enron = enron[
-    ["email_text", "label"]
+LABELED_FILES = [
+    "CEAS_08.csv", "Enron.csv", "Ling.csv", "Nazario.csv",
+    "Nazario_5.csv", "Nigerian_5.csv", "Nigerian_Fraud.csv",
+    "SpamAssasin.csv", "TREC_05.csv", "TREC_06.csv", "TREC_07.csv",
 ]
 
-# Keep only 100k safe emails
-enron = enron.sample(
-    n=100000,
-    random_state=42
-)
+MAILDIR_BASE = "spamassassin"
+MAILDIRS = {
+    "20021010_easy_ham":   "legitimate",
+    "20030228_easy_ham":   "legitimate",
+    "20030228_easy_ham_2": "legitimate",
+    "20030228_hard_ham":   "legitimate",
+    "20021010_spam":       "phishing",
+    "20030228_spam":       "phishing",
+    "20030228_spam_2":     "phishing",
+    "20050311_spam_2":     "phishing",
+}
 
-print(
-    f"Enron loaded: {len(enron)}"
-)
+def clean_text(text):
+    if not text:
+        return ""
+    text = unescape(text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"[^a-z0-9:/@._\-\s]+", " ", text.lower())
+    return re.sub(r"\s+", " ", text).strip()
 
-# ==========================================
-# LOAD PHISHING EMAIL
-# ==========================================
+def combine(subject, body):
+    parts = []
+    if subject:
+        parts.append(clean_text(subject))
+    if body:
+        parts.append(clean_text(body))
+    return re.sub(r"\s+", " ", " ".join(parts)).strip()
 
-print("Loading phishing_email...")
+def parse_raw_email(msg_text):
+    subject = ""
+    body = ""
+    try:
+        msg = email.message_from_string(msg_text)
+        subject = msg.get("Subject", "")
+        if msg.is_multipart():
+            for part in msg.walk():
+                if part.get_content_type() == "text/plain":
+                    body = part.get_payload(decode=True)
+                    if isinstance(body, bytes):
+                        body = body.decode("utf-8", errors="ignore")
+                    break
+        else:
+            body = msg.get_payload(decode=True)
+            if isinstance(body, bytes):
+                body = body.decode("utf-8", errors="ignore")
+    except Exception:
+        lines = msg_text.split("\n")
+        body_lines = []
+        in_headers = True
+        for line in lines:
+            if in_headers:
+                if line.lower().startswith("subject:"):
+                    subject = line[8:].strip()
+                if line.strip() == "":
+                    in_headers = False
+            else:
+                body_lines.append(line)
+        body = "\n".join(body_lines)
+    return subject, body
 
-phishing_email = pd.read_csv(
-    RAW_DIR /
-    "phishing_email" /
-    "phishing_email.csv"
-)
+# ============================================================
+# PROCESS LABELED CSVs
+# ============================================================
 
-phishing_email = phishing_email.rename(
-    columns={
-        "text_combined":
-        "email_text"
-    }
-)
+def process_labeled_csvs():
+    print("=" * 60)
+    print("  LABELED CSV FILES")
+    print("=" * 60)
 
-phishing_email["label"] = (
-    "phishing"
-)
+    all_rows = []
+    grand = {"legitimate": 0, "phishing": 0}
 
-phishing_email = phishing_email[
-    [
-        "email_text",
-        "label",
-    ]
-]
+    for fname in LABELED_FILES:
+        path = os.path.join(str(RAW_DIR), fname)
+        if not os.path.exists(path):
+            print(f"  SKIP  {fname}")
+            continue
 
-print(
-    f"phishing_email loaded: {len(phishing_email)}"
-)
+        rows = []
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            reader = csv.DictReader(f)
+            has_subject = "subject" in reader.fieldnames
+            for row in reader:
+                lbl = (row.get("label") or "").strip().lower()
+                if lbl not in ("0", "1"):
+                    continue
+                text = combine(row.get("subject"), row.get("body")) if has_subject else clean_text(row.get("body", ""))
+                if len(text) < 20:
+                    continue
+                label = "legitimate" if lbl == "0" else "phishing"
+                rows.append({"email_text": text, "label": label, "source": fname})
 
-# ==========================================
-# LOAD NAZARIO
-# ==========================================
+        c_legit = sum(1 for r in rows if r["label"] == "legitimate")
+        c_phish = sum(1 for r in rows if r["label"] == "phishing")
+        avg_len = int(sum(len(r["email_text"]) for r in rows) / len(rows)) if rows else 0
+        pct_phish = c_phish / (c_legit + c_phish) * 100 if (c_legit + c_phish) else 0
 
-print("Loading Nazario...")
+        print(f"  {fname:20s}  {len(rows):>6} rows  ({c_legit:>5} legit, {c_phish:>5} phish)  "
+              f"avg {avg_len:>5} chars  {pct_phish:5.1f}% phish")
 
-nazario = pd.read_csv(
-    RAW_DIR /
-    "Nazario" /
-    "Nazario.csv"
-)
+        all_rows.extend(rows)
+        grand["legitimate"] += c_legit
+        grand["phishing"] += c_phish
 
-nazario["email_text"] = (
-    nazario["subject"]
-    .fillna("")
-    + " "
-    + nazario["body"]
-    .fillna("")
-)
+    return all_rows, grand
 
-nazario["label"] = (
-    "phishing"
-)
+# ============================================================
+# PROCESS SPAMASSASSIN MAILDIRS
+# ============================================================
 
-nazario = nazario[
-    [
-        "email_text",
-        "label",
-    ]
-]
+def process_maildirs():
+    print("\n" + "=" * 60)
+    print("  SPAMASSASSIN MAILDIRS")
+    print("=" * 60)
 
-print(
-    f"Nazario loaded: {len(nazario)}"
-)
+    all_rows = []
+    grand = {"legitimate": 0, "phishing": 0}
+    base = os.path.join(str(RAW_DIR), MAILDIR_BASE)
 
-# ==========================================
-# LOAD NIGERIAN FRAUD
-# ==========================================
+    for dirname, label in MAILDIRS.items():
+        dir_path = os.path.join(base, dirname)
+        if not os.path.isdir(dir_path):
+            print(f"  SKIP  {dirname} (not found)")
+            continue
 
-print(
-    "Loading Nigerian Fraud..."
-)
+        items = os.listdir(dir_path)
+        subdirs = [d for d in items if os.path.isdir(os.path.join(dir_path, d))]
+        file_dir = os.path.join(dir_path, subdirs[0]) if subdirs else dir_path
+        files = [f for f in os.listdir(file_dir) if os.path.isfile(os.path.join(file_dir, f))]
 
-nigerian = pd.read_csv(
-    RAW_DIR /
-    "Nigerian_Fraud" /
-    "Nigerian_Fraud.csv"
-)
+        rows = []
+        for fname in files:
+            try:
+                with open(os.path.join(file_dir, fname), "r", encoding="utf-8", errors="ignore") as f:
+                    raw = f.read()
+                subject, body = parse_raw_email(raw)
+                text = combine(subject, body)
+                if len(text) >= 20:
+                    rows.append({"email_text": text, "label": label, "source": f"maildir:{dirname}"})
+            except Exception:
+                pass
 
-nigerian["email_text"] = (
-    nigerian["subject"]
-    .fillna("")
-    + " "
-    + nigerian["body"]
-    .fillna("")
-)
+        avg_len = int(sum(len(r["email_text"]) for r in rows) / len(rows)) if rows else 0
+        print(f"  {dirname:20s}  {len(rows):>6} rows  ({len(files):>5} files)  "
+              f"avg {avg_len:>5} chars  label={label}")
 
-nigerian["label"] = (
-    "phishing"
-)
+        all_rows.extend(rows)
+        grand[label] += len(rows)
 
-nigerian = nigerian[
-    [
-        "email_text",
-        "label",
-    ]
-]
+    return all_rows, grand
 
-print(
-    f"Nigerian Fraud loaded: {len(nigerian)}"
-)
+# ============================================================
+# MAIN
+# ============================================================
 
-# ==========================================
-# LOAD SPAMASSASIN
-# ==========================================
+print("BUILD FINAL DATASET  v2")
+print("=" * 60)
+print()
 
-print("Loading SpamAssasin...")
+csv_rows, csv_counts = process_labeled_csvs()
+mail_rows, mail_counts = process_maildirs()
 
-spamassasin = pd.read_csv(
-    RAW_DIR /
-    "SpamAssasin" /
-    "SpamAssasin.csv"
-)
+all_rows = csv_rows + mail_rows
+print("\n" + "=" * 60)
+print("  MERGE")
+print("=" * 60)
+print(f"  Labeled CSVs:          {len(csv_rows):>7} rows")
+print(f"  SpamAssassin maildirs: {len(mail_rows):>7} rows")
+print(f"  TOTAL:                 {len(all_rows):>7} rows")
+print(f"  Legitimate:            {csv_counts['legitimate'] + mail_counts['legitimate']:>7}")
+print(f"  Phishing:              {csv_counts['phishing'] + mail_counts['phishing']:>7}")
 
-spamassasin["email_text"] = (
-    spamassasin["subject"]
-    .fillna("")
-    + " "
-    + spamassasin["body"]
-    .fillna("")
-)
+print("\n  Deduplicating...")
+seen = set()
+deduped = []
+for r in all_rows:
+    key = r["email_text"][:200]
+    if key not in seen:
+        seen.add(key)
+        deduped.append(r)
 
-spamassasin["label"] = (
-    "phishing"
-)
+print(f"  After dedup: {len(deduped)} rows (removed {len(all_rows) - len(deduped)})")
+random.seed(42)
+random.shuffle(deduped)
 
-spamassasin = spamassasin[
-    [
-        "email_text",
-        "label",
-    ]
-]
+c_legit = sum(1 for r in deduped if r["label"] == "legitimate")
+c_phish = sum(1 for r in deduped if r["label"] == "phishing")
+print(f"  Legitimate: {c_legit}  ({c_legit/len(deduped)*100:.1f}%)")
+print(f"  Phishing:   {c_phish}  ({c_phish/len(deduped)*100:.1f}%)")
 
-print(
-    f"SpamAssasin loaded: {len(spamassasin)}"
-)
+with open(OUTPUT, "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=["email_text", "label"])
+    writer.writeheader()
+    for r in deduped:
+        writer.writerow({"email_text": r["email_text"], "label": r["label"]})
 
-# ==========================================
-# LOAD CEAS_08
-# ==========================================
-
-print("Loading CEAS_08...")
-
-ceas = pd.read_csv(
-    RAW_DIR /
-    "CEAS_08" /
-    "CEAS_08.csv"
-)
-
-ceas["email_text"] = (
-    ceas["subject"]
-    .fillna("")
-    + " "
-    + ceas["body"]
-    .fillna("")
-)
-
-ceas["label"] = (
-    "phishing"
-)
-
-ceas = ceas[
-    [
-        "email_text",
-        "label",
-    ]
-]
-
-print(
-    f"CEAS loaded: {len(ceas)}"
-)
-
-# ==========================================
-# MERGE
-# ==========================================
-
-print("Merging datasets...")
-
-dataset = pd.concat(
-    [
-        enron,
-        phishing_email,
-        nazario,
-        nigerian,
-        spamassasin,
-        ceas,
-    ],
-    ignore_index=True
-)
-
-# ==========================================
-# CLEAN
-# ==========================================
-
-print("Cleaning dataset...")
-
-dataset.dropna(
-    inplace=True
-)
-
-dataset.drop_duplicates(
-    subset=["email_text"],
-    inplace=True
-)
-
-dataset = dataset[
-    dataset[
-        "email_text"
-    ].str.len() > 20
-]
-
-dataset = dataset.sample(
-    frac=1,
-    random_state=42
-)
-
-# ==========================================
-# SAVE
-# ==========================================
-
-SAVE_PATH = (
-    FINAL_DIR /
-    "final_emails.csv"
-)
-
-dataset.to_csv(
-    SAVE_PATH,
-    index=False
-)
-
-print("\nDONE!")
-
-print(
-    f"Final rows: {len(dataset)}"
-)
-
-print(
-    "\nClass Distribution:"
-)
-
-print(
-    dataset["label"]
-    .value_counts()
-)
-
-print(
-    f"\nSaved to:\n{SAVE_PATH}"
-)
+size_mb = os.path.getsize(OUTPUT) / (1024**2)
+print(f"\n  Saved: {OUTPUT}  ({size_mb:.1f} MB)")
+print("  DONE.")

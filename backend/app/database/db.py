@@ -32,8 +32,17 @@ def init_db():
         prediction TEXT,
         confidence REAL,
         risk_level TEXT,
+        reasons TEXT,
+        scan_count INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    cursor.execute("PRAGMA table_info(scan_history)")
+    cols = {row[1] for row in cursor.fetchall()}
+    if "reasons" not in cols:
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN reasons TEXT")
+    if "scan_count" not in cols:
+        cursor.execute("ALTER TABLE scan_history ADD COLUMN scan_count INTEGER DEFAULT 1")
     conn.commit()
     conn.close()

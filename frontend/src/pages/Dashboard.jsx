@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import useScrollReveal from '../hooks/useScrollReveal.js';
 import useCountUp from '../hooks/useCountUp.js';
@@ -118,6 +119,16 @@ export default function Dashboard() {
   const [sortKey, setSortKey] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
+  const { search: urlSearch } = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(urlSearch);
+    if (params.get('section') === 'history') {
+      setTimeout(() => {
+        document.getElementById('scan-history')?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  }, [urlSearch]);
+
   useEffect(() => { requestAnimationFrame(() => setDataVisible(true)); }, []);
 
   const headerRef = useScrollReveal();
@@ -142,7 +153,7 @@ export default function Dashboard() {
         const dj = await dr.json();
         const hj = await hr.json();
         if (!mounted) return;
-        setData({ ...dj, recent: hj.slice(0, 4), history: hj });
+        setData({ ...FALLBACK_DATA, ...dj, recent: hj.slice(0, 4), history: hj });
         setIsLive(true);
       } catch {
         if (!mounted) return;
@@ -203,9 +214,9 @@ export default function Dashboard() {
   const recent = data.recent || [];
 
   return (
-    <div className="mx-auto max-w-7xl animate-fade-in-up px-4 py-16 md:px-6">
+    <div className="mx-auto max-w-7xl animate-fade-in-up px-4 py-8 md:px-6">
       {/* Header */}
-      <div ref={headerRef} className="reveal mb-10">
+      <div ref={headerRef} className="reveal mb-6">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-sm font-semibold text-primary-500">
             <span className="h-2 w-2 rounded-full bg-primary-500" />
@@ -218,14 +229,14 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <h1 className="mt-4 text-3xl font-bold text-text-primary md:text-4xl">Security Dashboard</h1>
-        <p className="mt-2 text-base text-text-secondary">
+        <h1 className="mt-3 text-2xl font-bold text-text-primary md:text-3xl">Security Dashboard</h1>
+        <p className="mt-1 text-sm text-text-secondary">
           Monitor phishing detections, scan history, confidence scores, and system performance powered by machine learning.
         </p>
       </div>
 
       {/* Stat Cards */}
-      <div ref={statsRef} className="reveal stagger-children mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div ref={statsRef} className="reveal stagger-children mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard icon="mail" title="Emails Scanned" value={data.total_scans} trend={trend.scans} color="primary" visible={dataVisible} />
         <StatCard icon="danger" title="Phishing Detected" value={data.phishing_count} trend={trend.phishing} color="danger" visible={dataVisible} />
         <StatCard icon="check" title="Safe Emails" value={data.safe_count} trend={trend.safe} color="safe" visible={dataVisible} />
@@ -234,15 +245,15 @@ export default function Dashboard() {
         <StatCard icon="report" title="High Risk Alerts" value={data.risk_levels?.high || 0} color="danger" visible={dataVisible} />
       </div>
 
-      {/* Charts Row */}
-      <div ref={chartRef} className="reveal mb-8 grid gap-6 lg:grid-cols-2">
+      {/* Charts + Threat Signals Row */}
+      <div ref={chartRef} className="reveal mb-6 grid gap-6 lg:grid-cols-2">
         {/* Pie Chart */}
-        <div className="hover-lift rounded-xl border border-surface-300 bg-white p-6 shadow-card">
-          <h2 className="mb-1 text-lg font-bold text-text-primary">Threat Distribution</h2>
-          <p className="mb-4 text-xs text-text-disabled">Breakdown of all scanned emails by classification</p>
-          <ResponsiveContainer width="100%" height={280}>
+        <div className="hover-lift rounded-xl border border-surface-300 bg-white p-5 shadow-card">
+          <h2 className="mb-1 text-base font-bold text-text-primary">Threat Distribution</h2>
+          <p className="mb-3 text-xs text-text-disabled">Breakdown of all scanned emails by classification</p>
+          <ResponsiveContainer width="100%" height={200}>
             <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={70} outerRadius={105} dataKey="value" paddingAngle={3}>
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={3}>
                 <Cell fill={PIE_COLORS.phishing} />
                 <Cell fill={PIE_COLORS.suspicious} />
                 <Cell fill={PIE_COLORS.safe} />
@@ -250,102 +261,77 @@ export default function Dashboard() {
               <Tooltip contentStyle={chartTooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
-          <div className="mt-3 flex justify-center gap-5 text-sm">
-            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: PIE_COLORS.phishing }} /> Phishing</span>
-            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: PIE_COLORS.suspicious }} /> Suspicious</span>
-            <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: PIE_COLORS.safe }} /> Safe</span>
+          <div className="mt-2 flex justify-center gap-5 text-xs">
+            <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS.phishing }} /> Phishing</span>
+            <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS.suspicious }} /> Suspicious</span>
+            <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS.safe }} /> Safe</span>
           </div>
         </div>
 
-        {/* Bar Chart */}
-        <div className="hover-lift rounded-xl border border-surface-300 bg-white p-6 shadow-card">
-          <h2 className="mb-1 text-lg font-bold text-text-primary">Risk Level Breakdown</h2>
-          <p className="mb-4 text-xs text-text-disabled">Scans categorized by severity risk level</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={riskData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis dataKey="level" stroke="#9e9e9e" tick={{ fontSize: 13 }} />
-              <YAxis stroke="#9e9e9e" allowDecimals={false} tick={{ fontSize: 13 }} />
-              <Tooltip cursor={{ fill: 'rgba(21,101,192,0.06)' }} contentStyle={chartTooltipStyle} />
-              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                <Cell fill="#d32f2f" />
-                <Cell fill="#ff8f00" />
-                <Cell fill="#43a047" />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Activity + Top Signals */}
-      <div className="reveal mb-8 grid gap-6 lg:grid-cols-2">
-        {/* Activity Timeline */}
-        <div className="rounded-xl border border-surface-300 bg-white p-6 shadow-card">
-          <h2 className="mb-1 text-lg font-bold text-text-primary">Recent Activity</h2>
-          <p className="mb-5 text-xs text-text-disabled">Latest email scans and detections</p>
-          <div className="space-y-0">
-            {recent.slice(0, 5).map((item, i) => {
-              const isPhishing = item.prediction === 'Phishing Email' || item.prediction === 'phishing';
-              const isSuspicious = item.prediction === 'Suspicious Email';
-              const dotColor = isPhishing ? 'bg-danger-500' : isSuspicious ? 'bg-suspicious-500' : 'bg-safe-500';
-              return (
-                <div key={item.id || i} className="group relative flex gap-4 pb-5 pl-6 last:pb-0">
-                  <div className={`absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white ${dotColor}`} />
-                  {i < recent.length - 1 && <div className="absolute left-[4.5px] top-4 h-full w-px bg-surface-200" />}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-text-primary">{item.sender || 'Unknown'}</p>
-                      <span className="text-xs text-text-disabled">{item.created_at}</span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${isPhishing ? 'bg-danger-50 text-danger-700' : isSuspicious ? 'bg-suspicious-50 text-suspicious-700' : 'bg-safe-50 text-safe-700'}`}>
-                        {item.prediction}
-                      </span>
-                      <span className="text-xs text-text-disabled">{item.confidence}% confidence</span>
-                    </div>
-                  </div>
+        {/* Bar Chart + Top Signals */}
+        <div className="space-y-6">
+          <div className="hover-lift rounded-xl border border-surface-300 bg-white p-5 shadow-card">
+            <h2 className="mb-1 text-base font-bold text-text-primary">Risk Level Breakdown</h2>
+            <p className="mb-3 text-xs text-text-disabled">Scans categorized by severity risk level</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={riskData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <XAxis dataKey="level" stroke="#9e9e9e" tick={{ fontSize: 12 }} />
+                <YAxis stroke="#9e9e9e" allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip cursor={{ fill: 'rgba(21,101,192,0.06)' }} contentStyle={chartTooltipStyle} />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  <Cell fill="#d32f2f" />
+                  <Cell fill="#ff8f00" />
+                  <Cell fill="#43a047" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Top Threat Signals */}
+          <div className="rounded-xl border border-surface-300 bg-white p-5 shadow-card">
+            <h2 className="mb-1 text-base font-bold text-text-primary">Top Threat Signals</h2>
+            <p className="mb-3 text-xs text-text-disabled">Most frequently detected phishing indicators</p>
+            <div className="space-y-3">
+              {signals.map((s, i) => (
+                <SignalBar key={i} name={s.name} count={s.count} maxCount={signals[0]?.count || 1} severity={s.severity} />
+              ))}
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-surface-50 p-3">
+              {[
+                { label: 'Critical', count: signals.filter(s => s.severity === 'Critical').reduce((a, b) => a + b.count, 0), color: 'bg-danger-500' },
+                { label: 'High', count: signals.filter(s => s.severity === 'High').reduce((a, b) => a + b.count, 0), color: 'bg-suspicious-500' },
+                { label: 'Total', count: signals.reduce((a, b) => a + b.count, 0), color: 'bg-primary-500' },
+              ].map(({ label, count, color }) => (
+                <div key={label} className="text-center">
+                  <p className="text-base font-bold text-text-primary">{count.toLocaleString()}</p>
+                  <p className="text-xs text-text-disabled">{label}</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Top Threat Signals */}
-        <div className="rounded-xl border border-surface-300 bg-white p-6 shadow-card">
-          <h2 className="mb-1 text-lg font-bold text-text-primary">Top Threat Signals</h2>
-          <p className="mb-5 text-xs text-text-disabled">Most frequently detected phishing indicators</p>
-          <div className="space-y-4">
-            {signals.map((s, i) => (
-              <SignalBar key={i} name={s.name} count={s.count} maxCount={signals[0]?.count || 1} severity={s.severity} />
-            ))}
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-3 rounded-xl bg-surface-50 p-4">
-            {[
-              { label: 'Critical', count: signals.filter(s => s.severity === 'Critical').reduce((a, b) => a + b.count, 0), color: 'bg-danger-500' },
-              { label: 'High', count: signals.filter(s => s.severity === 'High').reduce((a, b) => a + b.count, 0), color: 'bg-suspicious-500' },
-              { label: 'Total', count: signals.reduce((a, b) => a + b.count, 0), color: 'bg-primary-500' },
-            ].map(({ label, count, color }) => (
-              <div key={label} className="text-center">
-                <p className="text-lg font-bold text-text-primary">{count.toLocaleString()}</p>
-                <p className="text-xs text-text-disabled">{label}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Recent Detections Cards */}
-      <div className="reveal mb-8" ref={activityRef}>
-        <h2 className="mb-4 text-lg font-bold text-text-primary">Latest Detections</h2>
+      <div className="reveal mb-6" ref={activityRef}>
+        <h2 className="mb-3 text-lg font-bold text-text-primary">Latest Detections</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {recent.slice(0, 4).map((item, i) => {
             const isPhishing = item.prediction === 'Phishing Email' || item.prediction === 'phishing';
             const isSuspicious = item.prediction === 'Suspicious Email';
             const borderColor = isPhishing ? 'border-l-danger-500' : isSuspicious ? 'border-l-suspicious-500' : 'border-l-safe-500';
             const badgeStyle = isPhishing ? 'bg-danger-50 text-danger-700' : isSuspicious ? 'bg-suspicious-50 text-suspicious-700' : 'bg-safe-50 text-safe-700';
+            const rescanned = item.scan_count > 1;
             return (
               <div key={item.id || i} className={`hover-lift rounded-xl border border-surface-300 border-l-4 bg-white p-4 shadow-card ${borderColor}`}>
-                <p className="truncate text-sm font-medium text-text-primary">{item.sender || 'Unknown'}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium text-text-primary">{item.sender || 'Unknown'}</p>
+                  {rescanned && (
+                    <span className="shrink-0 rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-semibold text-primary-500">
+                      x{item.scan_count}
+                    </span>
+                  )}
+                </div>
                 <span className={`mt-2 inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${badgeStyle}`}>{item.prediction}</span>
                 <div className="mt-3 flex items-center justify-between text-xs text-text-disabled">
                   <span>{item.confidence}% confidence</span>
@@ -358,10 +344,10 @@ export default function Dashboard() {
       </div>
 
       {/* Scan History Table */}
-      <div ref={historyRef} className="reveal rounded-xl border border-surface-300 bg-white shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-200 px-6 py-4">
+      <div id="scan-history" ref={historyRef} className="reveal rounded-xl border border-surface-300 bg-white shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-200 px-5 py-3">
           <div>
-            <h2 className="text-lg font-bold text-text-primary">Scan History</h2>
+            <h2 className="text-base font-bold text-text-primary">Scan History</h2>
             <p className="text-xs text-text-disabled">Complete record of all email scans</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -392,10 +378,10 @@ export default function Dashboard() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="px-6 py-16 text-center text-text-disabled">
-            <Icon name="history" size={40} className="mx-auto" />
-            <p className="mt-3 text-base font-medium">{scanHistory.length === 0 ? 'No scans performed yet' : 'No matches found'}</p>
-            <p className="mt-1 text-sm">{scanHistory.length === 0 ? 'Scan an email on the Home page to see results here' : 'Try adjusting your search or filter'}</p>
+          <div className="px-5 py-10 text-center text-text-disabled">
+            <Icon name="history" size={32} className="mx-auto" />
+            <p className="mt-2 text-sm font-medium">{scanHistory.length === 0 ? 'No scans performed yet' : 'No matches found'}</p>
+            <p className="mt-1 text-xs">{scanHistory.length === 0 ? 'Scan an email on the Scanner page to see results here' : 'Try adjusting your search or filter'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -413,9 +399,19 @@ export default function Dashboard() {
                 {filtered.map((item, i) => {
                   const isPhishing = item.prediction === 'Phishing Email' || item.prediction === 'phishing';
                   const isSuspicious = item.prediction === 'Suspicious Email';
+                  const rescanned = item.scan_count > 1;
                   return (
-                    <tr key={i} className="animate-slide-up border-b border-surface-100 text-text-primary anim-fast hover:bg-surface-50" style={{ animationDelay: `${i * 30}ms` }}>
-                      <td className="max-w-[200px] truncate px-5 py-3.5 text-text-secondary">{item.sender || 'Unknown'}</td>
+                    <tr key={item.id || i} className="animate-slide-up border-b border-surface-100 text-text-primary anim-fast hover:bg-surface-50" style={{ animationDelay: `${i * 30}ms` }}>
+                      <td className="max-w-[180px] truncate px-5 py-3.5 text-text-secondary">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">{item.sender || 'Unknown'}</span>
+                          {rescanned && (
+                            <span className="shrink-0 rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-semibold text-primary-500">
+                              x{item.scan_count}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-semibold ${isPhishing ? 'bg-danger-50 text-danger-700' : isSuspicious ? 'bg-suspicious-50 text-suspicious-700' : 'bg-safe-50 text-safe-700'}`}>
                           {item.prediction}
